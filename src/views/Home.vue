@@ -22,12 +22,14 @@
 
         <ul>
           <li>Temprature</li>
-          <li>Rainfall</li>
+          <li>Precipitation</li>
           <li>Wind</li>
         </ul>
       </div>
     </div>
     <!-- End of Contents Section -->
+
+    <chart-line :chartData="chartData" :key="displayChartKey" />
 
     <div class="days-list">
       <div
@@ -50,10 +52,13 @@
 </template>
 
 <script>
+import ChartLine from "../components/charts/ChartLine.vue";
 import axios from "axios";
 export default {
   name: "Home",
-  components: {},
+  components: {
+    ChartLine
+  },
   data() {
     return {
       apiKey: process.env.VUE_APP_API_KEY,
@@ -68,7 +73,22 @@ export default {
       temprature: null,
       precipitation: 0,
       humidity: 0,
-      windSpeed: 0
+      windSpeed: 0,
+      displayChartKey: 0,
+
+      chartData: {
+        labels: ["DAY", "EVENING", "MAX", "MIN", "MORNING", "NIGHT"],
+        datasets: [
+          {
+            label: "Day Long Statistics",
+            data: [],
+            backgroundColor: "rgba(241, 225, 197, 0.4)",
+            borderColor: "#ffc764",
+            lineTension: 0.4,
+            pointBackgroundColor: "#ffc764"
+          }
+        ]
+      }
     };
   },
 
@@ -86,7 +106,9 @@ export default {
     this.selectedDayData = this.responseData[0];
     this.cityName = res.data.timezone;
     this.currentDay = this.getCurrentDay(0) + "Day";
-    this.setWeatherData();
+    console.log(this.chartData.datasets[0].data);
+    await this.setWeatherData();
+    console.log(this.chartData.datasets[0].data);
   },
 
   methods: {
@@ -101,6 +123,9 @@ export default {
         return;
       }
     },
+    updateChart() {
+      this.displayChartKey++;
+    },
     setWeatherData() {
       this.weatherDescription = this.selectedDayData.weather[0].description;
       this.weatherIcon = this.selectedDayData.weather[0].icon;
@@ -108,6 +133,13 @@ export default {
       this.humidity = this.selectedDayData.humidity;
       this.windSpeed = this.selectedDayData.wind_speed;
       this.precipitation = this.selectedDayData.rain || 0;
+      this.chartData.datasets[0].data = [];
+      for (let time in this.selectedDayData.temp) {
+        this.chartData.datasets[0].data.push(
+          Math.round(this.selectedDayData.temp[time] - 273.15)
+        );
+      }
+      this.updateChart();
     },
     selectDay(index) {
       this.selectedDayData = this.responseData[index];
